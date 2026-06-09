@@ -1,1 +1,1 @@
-# Comparacion_de_Algoritmos_de_Ordenamiento_en_CPU_y_GPU
+# Comparacion de Algoritmos de Ordenamiento en CPU y GPU
