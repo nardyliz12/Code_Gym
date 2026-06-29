@@ -1,0 +1,57 @@
+[
+  {
+    "id": "1782676238577",
+    "nombre": "Zildran",
+    "email": "zildrancm@gmail.com",
+    "password": "$2a$10$rbgV1ggBcevatLJu.H8YUe7Fa56gXQp24CKmN8lXgxuxStvA3HMnK",
+    "xp": 1415,
+    "nivel": 5,
+    "racha": 6,
+    "rachaMax": 6,
+    "vidas": 5,
+    "insignias": [
+      {
+        "id": "xp_100",
+        "nombre": "⭐ Primer Centenar",
+        "fecha": "2026-06-28T19:57:13.366Z"
+      },
+      {
+        "id": "nivel_3",
+        "nombre": "🧠 Pensador Lógico",
+        "fecha": "2026-06-28T20:36:09.940Z"
+      },
+      {
+        "id": "xp_500",
+        "nombre": "💎 Elite Coder",
+        "fecha": "2026-06-28T20:45:51.558Z"
+      },
+      {
+        "id": "nivel_5",
+        "nombre": "🏆 Master CodeGym",
+        "fecha": "2026-06-28T21:23:46.551Z"
+      }
+    ],
+    "ultimaSesion": "Mon Jun 29 2026",
+    "createdAt": "2026-06-28T19:50:38.577Z"
+  },
+  {
+    "id": "1782680124032",
+    "nombre": "Nardy",
+    "email": "nardy.condori@upch.pe",
+    "password": "$2a$10$H7oZcYoFLY44JJlPvREdbOx.ZFFsUWNuXPJhVO1Gzq62R7/VDPEw2",
+    "xp": 210,
+    "nivel": 2,
+    "racha": 4,
+    "rachaMax": 4,
+    "vidas": 5,
+    "insignias": [
+      {
+        "id": "xp_100",
+        "nombre": "⭐ Primer Centenar",
+        "fecha": "2026-06-28T20:57:49.906Z"
+      }
+    ],
+    "ultimaSesion": "Mon Jun 29 2026",
+    "createdAt": "2026-06-28T20:55:24.032Z"
+  }
+]

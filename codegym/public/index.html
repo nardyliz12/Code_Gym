@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CodeGym — Entrena tu lógica</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'></text></svg>" />
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ====== AUTH SCREEN ====== -->
+  <div id="screen-auth" class="screen active">
+    <div class="auth-layout">
+      <div class="auth-brand">
+        <div class="brand-logo">
+          <span class="logo-icon"></span>
+          <span class="logo-text">Code<strong>Gym</strong></span>
+        </div>
+        <p class="brand-tagline">Entrena tu lógica.<br/>Mantén tu racha.<br/>Domina la programación.</p>
+        <div class="brand-stats">
+          <div class="stat-pill">🔥 Rachas diarias</div>
+          <div class="stat-pill">⭐ XP & Niveles</div>
+          <div class="stat-pill">Leaderboard</div>
+        </div>
+        <div class="code-snippet">
+          <pre><span class="c-kw">def</span> <span class="c-fn">learn_to_code</span>():
+    streak <span class="c-op">+=</span> <span class="c-num">1</span>
+    xp <span class="c-op">+=</span> challenge()
+    <span class="c-kw">if</span> streak <span class="c-op">></span> <span class="c-num">7</span>:
+        unlock_badge()
+    <span class="c-kw">return</span> progress</pre>
+        </div>
+      </div>
+
+      <div class="auth-panel">
+        <div class="auth-tabs">
+          <button class="tab-btn active" data-tab="login">Iniciar sesión</button>
+          <button class="tab-btn" data-tab="register">Registrarse</button>
+        </div>
+
+        <form id="form-login" class="auth-form active">
+          <h2>Bienvenido de vuelta</h2>
+          <div class="field">
+            <label>Correo electrónico</label>
+            <input type="email" id="login-email" placeholder="tu@email.com" required />
+          </div>
+          <div class="field">
+            <label>Contraseña</label>
+            <input type="password" id="login-pass" placeholder="••••••••" required />
+          </div>
+          <div id="login-error" class="form-error hidden"></div>
+          <button type="submit" class="btn-primary">Entrenar ahora →</button>
+          <p class="auth-hint">¿No tienes cuenta? <a href="#" data-tab="register">Regístrate gratis</a></p>
+        </form>
+
+        <form id="form-register" class="auth-form">
+          <h2>Empieza hoy</h2>
+          <div class="field">
+            <label>Tu nombre</label>
+            <input type="text" id="reg-nombre" placeholder="Nombre completo" required />
+          </div>
+          <div class="field">
+            <label>Correo electrónico</label>
+            <input type="email" id="reg-email" placeholder="tu@email.com" required />
+          </div>
+          <div class="field">
+            <label>Contraseña</label>
+            <input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres" required />
+          </div>
+          <div id="reg-error" class="form-error hidden"></div>
+          <button type="submit" class="btn-primary">Crear cuenta gratis →</button>
+          <p class="auth-hint">¿Ya tienes cuenta? <a href="#" data-tab="login">Inicia sesión</a></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== APP SCREEN ====== -->
+  <div id="screen-app" class="screen">
+
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="nav-brand">
+        <span class="logo-icon"></span>
+        <span class="logo-text">Code<strong>Gym</strong></span>
+      </div>
+      <div class="nav-stats">
+        <div class="nav-stat" title="Racha actual">🔥 <span id="nav-racha">0</span></div>
+        <div class="nav-stat" title="Vidas">❤️ <span id="nav-vidas">5</span></div>
+        <div class="nav-stat xp-pill" title="Experiencia">⚡ <span id="nav-xp">0</span> XP</div>
+      </div>
+      <div class="nav-menu">
+        <button class="nav-btn active" data-view="home">Inicio</button>
+        <button class="nav-btn" data-view="practice">Practicar</button>
+        <button class="nav-btn" data-view="progress">Progreso</button>
+        <button class="nav-btn" data-view="leaderboard">Ranking</button>
+      </div>
+      <button class="hamburger" id="hamburger">☰</button>
+      <button class="nav-btn" id="btn-logout" style="margin-left:8px;border:1px solid var(--navy-border);flex-shrink:0;">↩ Salir</button>
+    </nav>
+
+    <!-- Views container -->
+    <main class="main-content">
+
+      <!-- HOME VIEW -->
+      <div id="view-home" class="view active">
+        <div class="home-hero">
+          <div class="hero-greeting">
+            <h1>¡Hola, <span id="hero-nombre">Estudiante</span>! </h1>
+            <p class="hero-sub">Llevas <strong><span id="hero-racha">0</span> días</strong> de racha. ¡No la rompas!</p>
+          </div>
+          <div class="hero-card-row">
+            <div class="metric-card">
+              <div class="metric-icon">🔥</div>
+              <div class="metric-val" id="home-racha">0</div>
+              <div class="metric-label">Racha actual</div>
+            </div>
+            <div class="metric-card accent">
+              <div class="metric-icon">⚡</div>
+              <div class="metric-val" id="home-xp">0</div>
+              <div class="metric-label">XP Total</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon">🎯</div>
+              <div class="metric-val" id="home-nivel">1</div>
+              <div class="metric-label">Nivel</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon">❤️</div>
+              <div class="metric-val" id="home-vidas">5</div>
+              <div class="metric-label">Vidas</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="xp-bar-section">
+          <div class="xp-bar-label">
+            <span>Nivel <span id="xp-nivel-actual">1</span></span>
+            <span><span id="xp-actual">0</span> / <span id="xp-siguiente">100</span> XP</span>
+          </div>
+          <div class="xp-bar-track">
+            <div class="xp-bar-fill" id="xp-bar-fill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <h2 class="section-title"> Ruta de Aprendizaje</h2>
+        <div class="levels-grid" id="levels-grid">
+          <!-- Generado por JS -->
+        </div>
+
+        <div class="insignias-section">
+          <h2 class="section-title">Insignias</h2>
+          <div id="insignias-grid" class="insignias-grid">
+            <p class="empty-msg">Completa ejercicios para ganar insignias</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRACTICE VIEW -->
+      <div id="view-practice" class="view">
+        <div class="practice-header">
+          <button class="btn-back" id="btn-back-levels">← Niveles</button>
+          <div class="practice-level-info">
+            <span id="prac-nivel-label">Nivel 1</span>
+            <span id="prac-ejercicio-num">Ejercicio 1 de ?</span>
+          </div>
+          <div class="lives-display" id="lives-display">❤️❤️❤️❤️❤️</div>
+        </div>
+
+        <div class="exercise-container" id="exercise-container">
+          <!-- Ejercicio cargado dinámicamente -->
+        </div>
+      </div>
+
+      <!-- PROGRESS VIEW -->
+      <div id="view-progress" class="view">
+        <h1 class="view-title"> Mi Progreso</h1>
+        <div id="progress-content">
+          <div class="loading-spinner">Cargando estadísticas...</div>
+        </div>
+      </div>
+
+      <!-- LEADERBOARD VIEW -->
+      <div id="view-leaderboard" class="view">
+        <h1 class="view-title">Tabla de Líderes</h1>
+        <div id="leaderboard-content">
+          <div class="loading-spinner">Cargando ranking...</div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ====== MODALS ====== -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal" id="modal-box">
+      <div class="modal-icon" id="modal-icon"></div>
+      <h2 id="modal-title"></h2>
+      <p id="modal-body"></p>
+      <div class="modal-actions">
+        <button class="btn-primary" id="modal-btn-next">Siguiente →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-level-select" class="modal-overlay hidden">
+    <div class="modal modal-levels">
+      <button class="modal-close" id="close-level-select">✕</button>
+      <h2 id="modal-level-title">Selecciona dificultad</h2>
+      <div class="difficulty-buttons">
+        <button class="diff-btn" data-diff="inicio"> Inicio</button>
+        <button class="diff-btn" data-diff="medio">Medio</button>
+        <button class="diff-btn" data-diff="avanzado">Avanzado</button>
+        <button class="diff-btn" data-diff="all">Todos</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
