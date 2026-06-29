@@ -227,6 +227,25 @@ function updateNavStats() {
   setText('nav-xp', u.xp || 0);
 }
 
+// Verificar racha y vidas cada 20 minutos
+setInterval(async () => {
+  if (!state.user) return;
+  try {
+    const u = await API.me();
+    const rachaAnterior = state.user.racha || 0;
+    state.user = u;
+    updateNavStats();
+    renderHome();
+    if (u.perdioRacha && rachaAnterior > 0) {
+      showModal('💔', '¡Perdiste tu racha!',
+        `Tu racha de ${rachaAnterior} días se ha reiniciado a 0 porque no practicaste en los últimos 20 minutos. ¡Vuelve a practicar para construir una nueva racha!`,
+        false, () => {});
+    } else if (u.vidas === 5 && rachaAnterior === u.racha) {
+      // Solo notificar restauracion de vidas silenciosamente
+    }
+  } catch(e) {}
+}, 20 * 60 * 1000);
+
 // ============================
 //  LEVEL SELECT
 // ============================
@@ -468,8 +487,8 @@ async function handleResult(result, ej, tiempoSegundos) {
     fb.style.padding = '14px 16px';
     fb.style.fontSize = '0.92rem';
     fb.style.lineHeight = '1.6';
-    fb.innerHTML = `<strong>${result.correcto ? '✅' : '❌'}</strong> ${result.feedback || ''}
-      ${!result.correcto && result.respuestaCorrecta ? `<br/><br/><strong>Respuesta correcta:</strong> <code style="color:var(--green)">${result.respuestaCorrecta}</code>` : ''}
+    fb.innerHTML = `<strong>${result.correcto ? 'Correcto' : 'Incorrecto'}</strong> ${result.feedback || ''}
+      ${!result.correcto && result.respuestaCorrecta ? `<br/><br/><strong>Respuesta correcta:</strong> <code style="color:var(--green)">${result.respuestaCorrecta ? result.respuestaCorrecta.replace(/\n/g, "<br/>") : ""}</code>` : ''}
       <br/><br/><button onclick="showNextButton()" style="background:var(--green);color:#000;border:none;padding:10px 24px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.95rem;">Continuar →</button>
     `;
   }

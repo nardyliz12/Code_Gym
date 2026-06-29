@@ -1167,5 +1167,144 @@
     "tiempoSegundos": 13,
     "nivelEjercicio": 5,
     "fecha": "2026-06-28T21:31:19.626Z"
+  },
+  {
+    "id": "1782697117058",
+    "userId": "1782680124032",
+    "ejercicioId": "n2_003",
+    "correcto": true,
+    "xpGanado": 10,
+    "tiempoSegundos": 7,
+    "nivelEjercicio": 2,
+    "fecha": "2026-06-29T01:38:37.058Z"
+  },
+  {
+    "id": "1782697125783",
+    "userId": "1782680124032",
+    "ejercicioId": "n2_005",
+    "correcto": true,
+    "xpGanado": 25,
+    "tiempoSegundos": 5,
+    "nivelEjercicio": 2,
+    "fecha": "2026-06-29T01:38:45.783Z"
+  },
+  {
+    "id": "1782697944723",
+    "userId": "1782680124032",
+    "ejercicioId": "n2_004",
+    "correcto": true,
+    "xpGanado": 20,
+    "tiempoSegundos": 811,
+    "nivelEjercicio": 2,
+    "fecha": "2026-06-29T01:52:24.723Z"
+  },
+  {
+    "id": "1782697957066",
+    "userId": "1782680124032",
+    "ejercicioId": "n2_002",
+    "correcto": true,
+    "xpGanado": 15,
+    "tiempoSegundos": 7,
+    "nivelEjercicio": 2,
+    "fecha": "2026-06-29T01:52:37.067Z"
+  },
+  {
+    "id": "1782697968400",
+    "userId": "1782680124032",
+    "ejercicioId": "n2_006",
+    "correcto": true,
+    "xpGanado": 25,
+    "tiempoSegundos": 8,
+    "nivelEjercicio": 2,
+    "fecha": "2026-06-29T01:52:48.400Z"
+  },
+  {
+    "id": "1782697979977",
+    "userId": "1782680124032",
+    "ejercicioId": "n2_001",
+    "correcto": true,
+    "xpGanado": 10,
+    "tiempoSegundos": 9,
+    "nivelEjercicio": 2,
+    "fecha": "2026-06-29T01:52:59.977Z"
+  },
+  {
+    "id": "1782698044394",
+    "userId": "1782680124032",
+    "ejercicioId": "n3_004",
+    "correcto": false,
+    "xpGanado": 0,
+    "tiempoSegundos": 38,
+    "nivelEjercicio": 3,
+    "fecha": "2026-06-29T01:54:04.394Z"
+  },
+  {
+    "id": "1782698203293",
+    "userId": "1782680124032",
+    "ejercicioId": "n3_005",
+    "correcto": true,
+    "xpGanado": 30,
+    "tiempoSegundos": 8,
+    "nivelEjercicio": 3,
+    "fecha": "2026-06-29T01:56:43.293Z"
+  },
+  {
+    "id": "1782698215183",
+    "userId": "1782680124032",
+    "ejercicioId": "n3_002",
+    "correcto": true,
+    "xpGanado": 10,
+    "tiempoSegundos": 5,
+    "nivelEjercicio": 3,
+    "fecha": "2026-06-29T01:56:55.183Z"
+  },
+  {
+    "id": "1782698260982",
+    "userId": "1782680124032",
+    "ejercicioId": "n3_004",
+    "correcto": true,
+    "xpGanado": 25,
+    "tiempoSegundos": 43,
+    "nivelEjercicio": 3,
+    "fecha": "2026-06-29T01:57:40.982Z"
+  },
+  {
+    "id": "1782698276846",
+    "userId": "1782680124032",
+    "ejercicioId": "n3_001",
+    "correcto": true,
+    "xpGanado": 10,
+    "tiempoSegundos": 7,
+    "nivelEjercicio": 3,
+    "fecha": "2026-06-29T01:57:56.846Z"
+  },
+  {
+    "id": "1782698290888",
+    "userId": "1782680124032",
+    "ejercicioId": "n3_003",
+    "correcto": true,
+    "xpGanado": 20,
+    "tiempoSegundos": 11,
+    "nivelEjercicio": 3,
+    "fecha": "2026-06-29T01:58:10.888Z"
+  },
+  {
+    "id": "1782698351174",
+    "userId": "1782680124032",
+    "ejercicioId": "n4_002",
+    "correcto": true,
+    "xpGanado": 15,
+    "tiempoSegundos": 3,
+    "nivelEjercicio": 4,
+    "fecha": "2026-06-29T01:59:11.174Z"
+  },
+  {
+    "id": "1782698355913",
+    "userId": "1782680124032",
+    "ejercicioId": "n4_001",
+    "xpGanado": 0,
+    "tiempoSegundos": 2,
+    "nivelEjercicio": 4,
+    "fecha": "2026-06-29T01:59:15.913Z"
   }
 ]

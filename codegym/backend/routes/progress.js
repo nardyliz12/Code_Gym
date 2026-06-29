@@ -4,25 +4,28 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Restaurar vidas y actualizar racha cada 5 minutos (simulación)
+// Restaurar vidas y actualizar racha cada 20 minutos (simulación)
 setInterval(() => {
   const { findAll, update } = require('../middleware/db');
   const users = findAll('users', () => true);
   const ahora = new Date();
   users.forEach(user => {
     const progreso = findAll('progress', p => p.userId === user.id && p.correcto);
-    const hace5min = new Date(ahora - 5 * 60 * 1000);
-    const hizoEjercicio = progreso.some(p => new Date(p.fecha) >= hace5min);
-    const nuevaRacha = hizoEjercicio ? (user.racha || 0) + 1 : (user.racha || 0);
+    const hace20min = new Date(ahora - 20 * 60 * 1000);
+    const hizoEjercicio = progreso.some(p => new Date(p.fecha) >= hace20min);
+    const rachaAnterior = user.racha || 0;
+    const nuevaRacha = hizoEjercicio ? rachaAnterior + 1 : 0;
+    const perdioRacha = !hizoEjercicio && rachaAnterior > 0;
     const nuevaRachaMax = Math.max(nuevaRacha, user.rachaMax || 0);
     update('users', u => u.id === user.id, {
       vidas: 5,
       racha: nuevaRacha,
-      rachaMax: nuevaRachaMax
+      rachaMax: nuevaRachaMax,
+      perdioRacha: perdioRacha
     });
-    console.log(`[Simulación] Usuario ${user.nombre}: vidas restauradas, racha=${nuevaRacha}`);
+    console.log(`[Simulación] Usuario ${user.nombre}: vidas restauradas, racha=${nuevaRacha}${perdioRacha ? ' - PERDIO RACHA' : ''}`);
   });
-}, 5 * 60 * 1000);
+}, 20 * 60 * 1000);
 
 // GET /api/progress - progreso del usuario
 router.get('/', authMiddleware, (req, res) => {

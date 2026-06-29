@@ -39,16 +39,21 @@
     "nombre": "Nardy",
     "email": "nardy.condori@upch.pe",
     "password": "$2a$10$H7oZcYoFLY44JJlPvREdbOx.ZFFsUWNuXPJhVO1Gzq62R7/VDPEw2",
-    "xp": 210,
-    "nivel": 2,
+    "xp": 425,
+    "nivel": 3,
     "racha": 4,
     "rachaMax": 4,
-    "vidas": 5,
+    "vidas": 3,
     "insignias": [
       {
         "id": "xp_100",
         "nombre": "⭐ Primer Centenar",
         "fecha": "2026-06-28T20:57:49.906Z"
+      },
+      {
+        "id": "nivel_3",
+        "nombre": "🧠 Pensador Lógico",
+        "fecha": "2026-06-29T01:52:48.400Z"
       }
     ],
     "ultimaSesion": "Mon Jun 29 2026",
