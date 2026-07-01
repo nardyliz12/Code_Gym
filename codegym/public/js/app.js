@@ -849,6 +849,37 @@ async function renderProgress() {
   try {
     const stats = await API.getProgress();
     const pct = stats.totalEjercicios > 0 ? Math.round((stats.correctos / stats.totalEjercicios) * 100) : 0;
+    const smart = stats.seguimientoInteligente || { diagnostico: {}, alertas: {} };
+
+    const curva = smart.diagnostico.curvaEvolucion || [];
+    const curvaHTML = curva.length === 0
+      ? '<p class="empty-msg">Aún no hay datos semanales suficientes.</p>'
+      : `<div class="curve-grid">${curva.map(item => `
+          <div class="curve-col">
+            <div class="curve-bar-wrap"><div class="curve-bar" style="height:${Math.max(8, item.precision)}%"></div></div>
+            <div class="curve-pct">${item.precision}%</div>
+            <div class="curve-label">${item.semana}</div>
+          </div>
+        `).join('')}</div>`;
+
+    const tiempoPorNivel = smart.diagnostico.tiempoPorNivel || [];
+    const tiempoHTML = tiempoPorNivel.length === 0
+      ? '<p class="empty-msg">Todavía no hay tiempos registrados por nivel.</p>'
+      : `<ul class="smart-list">${tiempoPorNivel.map(item =>
+        `<li><strong>Nivel ${item.nivel}:</strong> ${item.promedioSegundos}s promedio (${item.intentos} intentos)</li>`
+      ).join('')}</ul>`;
+
+    const conceptos = smart.alertas.conceptosCriticos || [];
+    const conceptosHTML = conceptos.length === 0
+      ? '<p class="empty-msg">No se detectaron conceptos críticos por ahora.</p>'
+      : `<ul class="smart-list">${conceptos.map(c =>
+        `<li><strong>${c.concepto}:</strong> ${c.fallos} fallos${c.pendiente > 0 ? ` · ${c.pendiente} pendiente(s)` : ''}</li>`
+      ).join('')}</ul>`;
+
+    const preventivas = smart.alertas.preventivas || [];
+    const preventivasHTML = preventivas.length === 0
+      ? '<p class="empty-msg">Sin alertas preventivas activas.</p>'
+      : `<ul class="smart-list">${preventivas.map(msg => `<li>${escapeHTML(msg)}</li>`).join('')}</ul>`;
 
     let html = `
       <div class="progress-grid">
@@ -892,6 +923,28 @@ async function renderProgress() {
             <div class="history-state ${item.correcto ? 'done' : 'pending'}">${item.correcto ? 'Corregida' : 'Pendiente'}</div>
           </div>
         `).join('')}
+      </div>
+
+      <h2 class="section-title">Seguimiento Inteligente</h2>
+      <div class="smart-grid">
+        <div class="smart-card">
+          <h3>Diagnóstico de Desempeño</h3>
+          <p class="smart-highlight">Tiempo promedio por ejercicio: <strong>${smart.diagnostico.tiempoPromedioSegundos || 0}s</strong></p>
+          ${tiempoHTML}
+          <h4>Curva de evolución semanal</h4>
+          ${curvaHTML}
+        </div>
+        <div class="smart-card">
+          <h3 class="danger">Alertas y Dificultades</h3>
+          <p class="risk-pill risk-${smart.alertas.riesgo || 'bajo'}">Riesgo: ${(smart.alertas.riesgo || 'bajo').toUpperCase()}</p>
+          <h4>Conceptos críticos</h4>
+          ${conceptosHTML}
+          <h4>Alertas preventivas</h4>
+          ${preventivasHTML}
+        </div>
+      </div>
+      <div class="smart-support">
+        <strong>Soporte predictivo:</strong> La información recopilada en tiempo real permite identificar y corregir dificultades antes de evaluaciones.
       </div>
 
       ${stats.insignias.length > 0 ? `

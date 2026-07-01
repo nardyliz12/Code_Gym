@@ -1730,5 +1730,55 @@
     "tiempoSegundos": 5,
     "nivelEjercicio": 5,
     "fecha": "2026-07-01T05:39:12.071Z"
+  },
+  {
+    "id": "1782886606776c1rja",
+    "userId": "1782886606751",
+    "ejercicioId": "n5_001",
+    "correcto": true,
+    "xpGanado": 0,
+    "tiempoSegundos": 1,
+    "nivelEjercicio": 5,
+    "fecha": "2026-07-01T06:16:46.776Z"
+  },
+  {
+    "id": "1782886606807ik3um",
+    "userId": "1782886606751",
+    "ejercicioId": "n5_002",
+    "correcto": true,
+    "xpGanado": 0,
+    "tiempoSegundos": 1,
+    "nivelEjercicio": 5,
+    "fecha": "2026-07-01T06:16:46.807Z"
+  },
+  {
+    "id": "1782886606807tq50n",
+    "userId": "1782886606751",
+    "ejercicioId": "n5_003",
+    "correcto": true,
+    "xpGanado": 0,
+    "tiempoSegundos": 1,
+    "nivelEjercicio": 5,
+    "fecha": "2026-07-01T06:16:46.807Z"
+  },
+  {
+    "id": "17828866068076e23d",
+    "userId": "1782886606751",
+    "ejercicioId": "n5_004",
+    "correcto": true,
+    "xpGanado": 0,
+    "tiempoSegundos": 1,
+    "nivelEjercicio": 5,
+    "fecha": "2026-07-01T06:16:46.807Z"
+  },
+  {
+    "id": "1782886606807epzvm",
+    "userId": "1782886606751",
+    "ejercicioId": "n5_005",
+    "correcto": true,
+    "xpGanado": 0,
+    "tiempoSegundos": 1,
+    "nivelEjercicio": 5,
+    "fecha": "2026-07-01T06:16:46.807Z"
   }
 ]

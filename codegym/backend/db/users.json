@@ -8,7 +8,7 @@
     "nivel": 5,
     "racha": 1,
     "rachaMax": 6,
-    "vidas": 0,
+    "vidas": 5,
     "insignias": [
       {
         "id": "xp_100",
@@ -33,7 +33,7 @@
     ],
     "ultimaSesion": "Wed Jul 01 2026",
     "createdAt": "2026-06-28T19:50:38.577Z",
-    "vidasRestauranEn": "2026-07-01T05:54:52.164Z"
+    "vidasRestauranEn": null
   },
   {
     "id": "1782680124032",
@@ -60,6 +60,11 @@
         "id": "xp_500",
         "nombre": "💎 Elite Coder",
         "fecha": "2026-07-01T04:50:43.786Z"
+      },
+      {
+        "id": "nivel_5",
+        "nombre": "🏆 Master CodeGym",
+        "fecha": "2026-07-01T06:20:39.230Z"
       }
     ],
     "ultimaSesion": "Wed Jul 01 2026",
@@ -116,5 +121,41 @@
     ],
     "ultimaSesion": "Wed Jul 01 2026",
     "createdAt": "2026-07-01T05:29:35.696Z"
+  },
+  {
+    "id": "1782886606751",
+    "nombre": "QA L5 Badge",
+    "email": "qa_lvl5_badge@test.dev",
+    "password": "$2a$10$F7oOJUH3dQA7ouTFw210m.QeDaYb7uRzG0BJPgX.g6FXXOFoVmSJu",
+    "xp": 820,
+    "nivel": 4,
+    "racha": 1,
+    "rachaMax": 1,
+    "vidas": 5,
+    "vidasRestauranEn": null,
+    "insignias": [
+      {
+        "id": "xp_100",
+        "nombre": "⭐ Primer Centenar",
+        "fecha": "2026-07-01T06:16:46.923Z"
+      },
+      {
+        "id": "xp_500",
+        "nombre": "💎 Elite Coder",
+        "fecha": "2026-07-01T06:16:46.923Z"
+      },
+      {
+        "id": "nivel_3",
+        "nombre": "🧠 Pensador Lógico",
+        "fecha": "2026-07-01T06:16:46.923Z"
+      },
+      {
+        "id": "nivel_5",
+        "nombre": "🏆 Master CodeGym",
+        "fecha": "2026-07-01T06:17:26.003Z"
+      }
+    ],
+    "ultimaSesion": "Wed Jul 01 2026",
+    "createdAt": "2026-07-01T06:16:46.751Z"
   }
 ]

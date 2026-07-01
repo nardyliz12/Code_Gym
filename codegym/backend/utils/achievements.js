@@ -6,7 +6,7 @@ function calcularNivel(xp) {
   return 5;
 }
 
-function calcularInsignias(user, xp, nivel, racha = user.racha || 0) {
+function calcularInsignias(user, xp, nivel, racha = user.racha || 0, completoNivel5 = false) {
   const insignias = [...(user.insignias || [])];
   const agregar = (id, nombre) => {
     if (!insignias.find(i => i.id === id)) {
@@ -19,18 +19,18 @@ function calcularInsignias(user, xp, nivel, racha = user.racha || 0) {
   if (xp >= 100) agregar('xp_100', '⭐ Primer Centenar');
   if (xp >= 500) agregar('xp_500', '💎 Elite Coder');
   if (nivel >= 3) agregar('nivel_3', '🧠 Pensador Lógico');
-  if (nivel >= 5) agregar('nivel_5', '🏆 Master CodeGym');
+  if (nivel >= 5 || completoNivel5) agregar('nivel_5', '🏆 Master CodeGym');
 
   return insignias;
 }
 
-function syncUserAchievements(user) {
+function syncUserAchievements(user, options = {}) {
   if (!user) return null;
 
   const xp = user.xp || 0;
   const nivel = user.nivel || calcularNivel(xp);
   const racha = user.racha || 0;
-  const insignias = calcularInsignias(user, xp, nivel, racha);
+  const insignias = calcularInsignias(user, xp, nivel, racha, Boolean(options.completoNivel5));
   const changed = insignias.length !== (user.insignias || []).length;
 
   return {

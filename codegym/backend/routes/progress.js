@@ -7,6 +7,18 @@ const router = express.Router();
 const LIFE_COOLDOWN_MINUTES = Number(process.env.LIFE_COOLDOWN_MINUTES || 20);
 const LIFE_COOLDOWN_MS = LIFE_COOLDOWN_MINUTES * 60 * 1000;
 
+function hasCompletedLevel(userId, level) {
+  const exercises = readDB('exercises').filter(e => e.nivel === level);
+  if (exercises.length === 0) return false;
+
+  const solved = new Set(
+    findAll('progress', p => p.userId === userId && p.correcto && p.nivelEjercicio === level)
+      .map(p => p.ejercicioId)
+  );
+
+  return exercises.every(e => solved.has(e.id));
+}
+
 function getLivesRestoreAt() {
   return new Date(Date.now() + LIFE_COOLDOWN_MS).toISOString();
 }
@@ -67,12 +79,128 @@ function buildExerciseStatusMap(userId) {
   }, {});
 }
 
+function inferConcept(exercise = {}) {
+  const text = `${exercise.titulo || ''} ${exercise.enunciado || ''}`.toLowerCase();
+  if (/bucle|for|while|range/.test(text)) return 'Bucles';
+  if (/condicional|if|elif|else/.test(text)) return 'Condicionales';
+  if (/funcion|def\s|método|metodo/.test(text)) return 'Funciones';
+  if (/arreglo|lista|vector|matriz/.test(text)) return 'Arreglos';
+  if (/algoritmo|lógica|logica/.test(text)) return 'Lógica y algoritmos';
+  return `Nivel ${exercise.nivel || '?'}`;
+}
+
+function weekStart(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+function formatWeekLabel(date) {
+  return new Date(date).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' });
+}
+
+function buildSmartInsights(progreso, statusByExercise, exercisesById, user) {
+  const attempts = [...progreso].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  const avgTime = attempts.length > 0
+    ? Math.round(attempts.reduce((sum, a) => sum + (Number(a.tiempoSegundos) || 0), 0) / attempts.length)
+    : 0;
+
+  const byLevel = {};
+  attempts.forEach(a => {
+    const level = a.nivelEjercicio || exercisesById[a.ejercicioId]?.nivel || 0;
+    if (!byLevel[level]) byLevel[level] = { nivel: level, intentos: 0, tiempoTotal: 0 };
+    byLevel[level].intentos += 1;
+    byLevel[level].tiempoTotal += Number(a.tiempoSegundos) || 0;
+  });
+
+  const tiempoPorNivel = Object.values(byLevel)
+    .filter(item => item.nivel > 0)
+    .map(item => ({
+      nivel: item.nivel,
+      intentos: item.intentos,
+      promedioSegundos: Math.round(item.tiempoTotal / item.intentos)
+    }))
+    .sort((a, b) => a.nivel - b.nivel);
+
+  const sixWeeksAgo = weekStart(new Date(Date.now() - 6 * 7 * 24 * 60 * 60 * 1000));
+  const weeklyMap = {};
+  attempts.forEach(a => {
+    const w = weekStart(a.fecha);
+    if (w < sixWeeksAgo) return;
+    const key = w.toISOString();
+    if (!weeklyMap[key]) weeklyMap[key] = { weekStart: key, intentos: 0, correctos: 0 };
+    weeklyMap[key].intentos += 1;
+    if (a.correcto) weeklyMap[key].correctos += 1;
+  });
+
+  const curvaEvolucion = Object.values(weeklyMap)
+    .sort((a, b) => new Date(a.weekStart) - new Date(b.weekStart))
+    .map(item => ({
+      semana: formatWeekLabel(item.weekStart),
+      intentos: item.intentos,
+      precision: item.intentos > 0 ? Math.round((item.correctos / item.intentos) * 100) : 0
+    }));
+
+  const concepts = {};
+  Object.entries(statusByExercise).forEach(([exerciseId, status]) => {
+    if (status.incorrectos <= 0) return;
+    const exercise = exercisesById[exerciseId] || {};
+    const concept = inferConcept(exercise);
+    if (!concepts[concept]) concepts[concept] = { concepto: concept, fallos: 0, intentos: 0, pendiente: 0 };
+    concepts[concept].fallos += status.incorrectos;
+    concepts[concept].intentos += status.intentos;
+    if (!status.correcto) concepts[concept].pendiente += 1;
+  });
+
+  const conceptosCriticos = Object.values(concepts)
+    .filter(c => c.fallos >= 2 || c.pendiente > 0)
+    .sort((a, b) => b.fallos - a.fallos)
+    .slice(0, 4);
+
+  const recientes = attempts.slice(-10);
+  const precisionReciente = recientes.length > 0
+    ? Math.round((recientes.filter(a => a.correcto).length / recientes.length) * 100)
+    : 100;
+
+  const preventivas = [];
+  if (recientes.length >= 6 && precisionReciente < 55) {
+    preventivas.push(`La precisión reciente bajó a ${precisionReciente}%. Se recomienda intervención del tutor.`);
+  }
+  if ((user.vidas || 0) <= 1) {
+    preventivas.push('El estudiante está al límite de vidas. Se sugiere pausa guiada y refuerzo dirigido.');
+  }
+  if ((user.racha || 0) === 0 && (user.rachaMax || 0) >= 3) {
+    preventivas.push('Se detectó racha rota tras un buen histórico. Conviene reenganche temprano.');
+  }
+  if (conceptosCriticos.some(c => c.pendiente > 0)) {
+    preventivas.push('Hay conceptos con errores repetidos aún no corregidos. Priorizar práctica focalizada.');
+  }
+
+  const riesgo = preventivas.length >= 3 ? 'alto' : preventivas.length >= 1 ? 'medio' : 'bajo';
+
+  return {
+    diagnostico: {
+      tiempoPromedioSegundos: avgTime,
+      tiempoPorNivel,
+      curvaEvolucion
+    },
+    alertas: {
+      conceptosCriticos,
+      preventivas,
+      riesgo
+    }
+  };
+}
+
 // GET /api/progress - progreso del usuario
 router.get('/', authMiddleware, (req, res) => {
   const userId = req.user.id;
   const progreso = findAll('progress', p => p.userId === userId);
   let user = ensureLifeState(findOne('users', u => u.id === userId));
-  const syncedUser = syncUserAchievements(user);
+  const syncedUser = syncUserAchievements(user, { completoNivel5: hasCompletedLevel(userId, 5) });
   if (syncedUser?.achievementsChanged || (syncedUser && syncedUser.nivel !== user?.nivel)) {
     user = update('users', u => u.id === userId, {
       nivel: syncedUser.nivel,
@@ -111,6 +239,8 @@ router.get('/', authMiddleware, (req, res) => {
       .sort((a, b) => new Date(b.ultimaFecha || 0) - new Date(a.ultimaFecha || 0)),
     estadoEjercicios: statusByExercise
   };
+
+  stats.seguimientoInteligente = buildSmartInsights(progreso, statusByExercise, exercisesById, user || {});
 
   // Agrupar por nivel
   for (let n = 1; n <= 5; n++) {
@@ -165,7 +295,13 @@ router.post('/', authMiddleware, async (req, res) => {
     if (user && correcto) {
       const nuevoXP = user.xp + xpReal;
       const nuevoNivel = calcularNivel(nuevoXP);
-      const nuevasInsignias = calcularInsignias(user, nuevoXP, nuevoNivel);
+      const nuevasInsignias = calcularInsignias(
+        user,
+        nuevoXP,
+        nuevoNivel,
+        user.racha || 0,
+        hasCompletedLevel(userId, 5)
+      );
 
       // Restaurar vidas al subir de nivel
       const subiNivel = nuevoNivel > user.nivel;

@@ -709,6 +709,120 @@ body {
 .mini-bar-wrap { height: 8px; background: var(--navy-border); border-radius: 999px; overflow: hidden; margin-top: 4px; }
 .mini-bar { height: 100%; background: var(--green); border-radius: 999px; }
 
+.smart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 12px 0 16px;
+}
+
+.smart-card {
+  background: linear-gradient(160deg, rgba(30,47,90,0.75), rgba(13,27,62,0.92));
+  border: 1px solid var(--navy-border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.smart-card h3 {
+  color: var(--green);
+  margin-bottom: 10px;
+  font-size: 1.35rem;
+}
+
+.smart-card h3.danger { color: #ff6262; }
+
+.smart-card h4 {
+  margin: 14px 0 8px;
+  color: var(--white);
+  font-size: 0.95rem;
+}
+
+.smart-highlight {
+  color: var(--white-dim);
+  font-size: 0.92rem;
+}
+
+.smart-highlight strong { color: var(--green); }
+
+.smart-list {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.smart-list li {
+  font-size: 0.9rem;
+  color: var(--white-dim);
+  line-height: 1.5;
+}
+
+.smart-list strong { color: var(--white); }
+
+.curve-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: 10px;
+  align-items: end;
+  min-height: 150px;
+}
+
+.curve-col { text-align: center; }
+
+.curve-bar-wrap {
+  height: 100px;
+  border-radius: 10px;
+  background: rgba(13,27,62,0.8);
+  border: 1px solid var(--navy-border);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.curve-bar {
+  width: 100%;
+  background: linear-gradient(180deg, #70ffd1, #17d7a1);
+}
+
+.curve-pct {
+  margin-top: 6px;
+  font-size: 0.82rem;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.curve-label {
+  font-size: 0.76rem;
+  color: var(--white-dim);
+}
+
+.risk-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--navy-border);
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.risk-alto { color: #ff7b7b; border-color: rgba(255,123,123,0.55); background: rgba(255,79,109,0.14); }
+.risk-medio { color: var(--yellow); border-color: rgba(255,209,102,0.55); background: rgba(255,209,102,0.12); }
+.risk-bajo { color: var(--green); border-color: rgba(79,255,176,0.55); background: rgba(79,255,176,0.12); }
+
+.smart-support {
+  margin-bottom: 26px;
+  background: rgba(5, 42, 55, 0.42);
+  border: 1px solid rgba(0, 220, 170, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  color: var(--white-dim);
+  text-align: center;
+  line-height: 1.55;
+}
+
+.smart-support strong { color: var(--white); }
+
 /* ============================
    LEADERBOARD
    ============================ */
@@ -818,6 +932,7 @@ body {
   .main-content { padding: 24px 16px; }
   .exercise-card { padding: 20px; }
   .practice-layout { grid-template-columns: 1fr; }
+  .smart-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 480px) {

@@ -1,11 +1,23 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { findOne, insert, update } = require('../middleware/db');
+const { findOne, findAll, insert, update, readDB } = require('../middleware/db');
 const { authMiddleware, SECRET } = require('../middleware/auth');
 const { syncUserAchievements } = require('../utils/achievements');
 
 const router = express.Router();
+
+function hasCompletedLevel(userId, level) {
+  const exercises = readDB('exercises').filter(e => e.nivel === level);
+  if (exercises.length === 0) return false;
+
+  const solved = new Set(
+    findAll('progress', p => p.userId === userId && p.correcto && p.nivelEjercicio === level)
+      .map(p => p.ejercicioId)
+  );
+
+  return exercises.every(e => solved.has(e.id));
+}
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
@@ -79,7 +91,7 @@ router.post('/login', async (req, res) => {
       ultimaSesion: hoy,
       vidas,
       vidasRestauranEn
-    });
+    }, { completoNivel5: hasCompletedLevel(user.id, 5) });
 
     update('users', u => u.id === user.id, {
       racha: nuevaRacha,
@@ -112,7 +124,7 @@ router.get('/me', authMiddleware, (req, res) => {
       vidasRestauranEn: null
     }) || { ...user, vidas: 5, vidasRestauranEn: null };
   }
-  const syncedUser = syncUserAchievements(currentUser);
+  const syncedUser = syncUserAchievements(currentUser, { completoNivel5: hasCompletedLevel(user.id, 5) });
   if (syncedUser.achievementsChanged || syncedUser.nivel !== currentUser.nivel) {
     currentUser = update('users', u => u.id === user.id, {
       nivel: syncedUser.nivel,
