@@ -1,7 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const dbDir = path.join(__dirname, '../db');
+const dbDir = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.join(__dirname, '../db');
+
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
 
 function readDB(name) {
   const fp = path.join(dbDir, `${name}.json`);

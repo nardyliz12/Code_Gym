@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { findOne, insert, update } = require('../middleware/db');
 const { authMiddleware, SECRET } = require('../middleware/auth');
+const { syncUserAchievements } = require('../utils/achievements');
 
 const router = express.Router();
 
@@ -27,6 +28,7 @@ router.post('/register', async (req, res) => {
       racha: 0,
       rachaMax: 0,
       vidas: 5,
+      vidasRestauranEn: null,
       insignias: [],
       ultimaSesion: null,
       createdAt: new Date().toISOString()
@@ -65,13 +67,31 @@ router.post('/login', async (req, res) => {
     }
 
     const rachaMax = Math.max(user.rachaMax || 0, nuevaRacha);
+    const restoreAt = user.vidasRestauranEn ? new Date(user.vidasRestauranEn).getTime() : null;
+    const cooldownVencido = user.vidas === 0 && restoreAt && restoreAt <= Date.now();
+    const vidas = cooldownVencido ? 5 : user.vidas;
+    const vidasRestauranEn = cooldownVencido ? null : user.vidasRestauranEn || null;
+
+    const syncedUser = syncUserAchievements({
+      ...user,
+      racha: nuevaRacha,
+      rachaMax,
+      ultimaSesion: hoy,
+      vidas,
+      vidasRestauranEn
+    });
+
     update('users', u => u.id === user.id, {
       racha: nuevaRacha,
       rachaMax,
-      ultimaSesion: hoy
+      ultimaSesion: hoy,
+      vidas,
+      vidasRestauranEn,
+      nivel: syncedUser.nivel,
+      insignias: syncedUser.insignias
     });
 
-    const updatedUser = { ...user, racha: nuevaRacha, rachaMax, ultimaSesion: hoy };
+    const updatedUser = syncedUser;
     const token = jwt.sign({ id: user.id, email: user.email, nombre: user.nombre }, SECRET, { expiresIn: '7d' });
     const { password: _, ...userSafe } = updatedUser;
     res.json({ token, user: userSafe });
@@ -84,7 +104,24 @@ router.post('/login', async (req, res) => {
 router.get('/me', authMiddleware, (req, res) => {
   const user = findOne('users', u => u.id === req.user.id);
   if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-  const { password: _, ...userSafe } = user;
+  let currentUser = user;
+  const restoreAt = user.vidasRestauranEn ? new Date(user.vidasRestauranEn).getTime() : null;
+  if (user.vidas === 0 && restoreAt && restoreAt <= Date.now()) {
+    currentUser = update('users', u => u.id === user.id, {
+      vidas: 5,
+      vidasRestauranEn: null
+    }) || { ...user, vidas: 5, vidasRestauranEn: null };
+  }
+  const syncedUser = syncUserAchievements(currentUser);
+  if (syncedUser.achievementsChanged || syncedUser.nivel !== currentUser.nivel) {
+    currentUser = update('users', u => u.id === user.id, {
+      nivel: syncedUser.nivel,
+      insignias: syncedUser.insignias
+    }) || syncedUser;
+  } else {
+    currentUser = syncedUser;
+  }
+  const { password: _, ...userSafe } = currentUser;
   res.json(userSafe);
 });
 

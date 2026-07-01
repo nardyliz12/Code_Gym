@@ -5,6 +5,9 @@
 // ---- STATE ----
 let state = {
   user: null,
+  progress: null,
+  lifeCountdownTimer: null,
+  pendingBadges: [],
   currentView: 'home',
   practice: {
     nivel: null,
@@ -34,12 +37,139 @@ const TIPO_LABELS = {
   escribir: 'Escribir desde cero'
 };
 
+const DIFFICULTIES = ['inicio', 'medio', 'avanzado'];
+
 // ---- DOM HELPERS ----
 const $ = id => document.getElementById(id);
 const setHTML = (id, html) => { const el = $(id); if (el) el.innerHTML = html; };
 const setText = (id, t) => { const el = $(id); if (el) el.textContent = t; };
 const show = id => { const el = $(id); if (el) el.classList.remove('hidden'); };
 const hide = id => { const el = $(id); if (el) el.classList.add('hidden'); };
+
+function escapeHTML(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getCooldownRemainingMs(restoreAt) {
+  if (!restoreAt) return 0;
+  return Math.max(0, new Date(restoreAt).getTime() - Date.now());
+}
+
+function formatCountdown(ms) {
+  const totalSeconds = Math.ceil(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function stopLifeCountdown() {
+  if (state.lifeCountdownTimer) {
+    clearInterval(state.lifeCountdownTimer);
+    state.lifeCountdownTimer = null;
+  }
+}
+
+function updateLifeCooldownUI() {
+  const vidas = state.user?.vidas ?? 5;
+  const restoreAt = state.user?.vidasRestauranEn || null;
+  const active = vidas === 0 && restoreAt;
+  const countdown = active ? formatCountdown(getCooldownRemainingMs(restoreAt)) : '';
+
+  if (active) {
+    setText('nav-cooldown-text', `Vidas en ${countdown}`);
+    setText('practice-cooldown-text', `Vidas de vuelta en ${countdown}`);
+    const modalCountdown = $('modal-life-countdown');
+    if (modalCountdown) modalCountdown.textContent = countdown;
+    show('nav-cooldown');
+    show('practice-cooldown');
+  } else {
+    hide('nav-cooldown');
+    hide('practice-cooldown');
+  }
+}
+
+async function startLifeCountdown() {
+  stopLifeCountdown();
+  updateLifeCooldownUI();
+
+  const vidas = state.user?.vidas ?? 5;
+  const restoreAt = state.user?.vidasRestauranEn || null;
+  if (vidas !== 0 || !restoreAt) return;
+
+  state.lifeCountdownTimer = setInterval(async () => {
+    const remaining = getCooldownRemainingMs(state.user?.vidasRestauranEn);
+    updateLifeCooldownUI();
+
+    if (remaining > 0) return;
+
+    stopLifeCountdown();
+    try {
+      await refreshSessionState(true);
+      if (state.currentView === 'home') renderHome();
+      if (state.currentView === 'practice') updatePracticeHeader();
+      showModal('❤️', 'Vidas restauradas', 'Ya puedes volver a practicar.', false);
+    } catch (e) {
+      // ignore refresh race
+    }
+  }, 1000);
+}
+
+async function refreshSessionState(includeProgress = false) {
+  const requests = [API.me()];
+  if (includeProgress) requests.push(API.getProgress());
+  const [user, progress] = await Promise.all(requests);
+  state.user = user;
+  if (progress) state.progress = progress;
+  updateNavStats();
+  updateLivesDisplay();
+  updateLifeCooldownUI();
+  await startLifeCountdown();
+  return { user, progress };
+}
+
+async function ensureProgressLoaded(force = false) {
+  if (!force && state.progress) return state.progress;
+  const stats = await API.getProgress();
+  state.progress = stats;
+  if (state.user) {
+    state.user.vidas = stats.vidas;
+    state.user.vidasRestauranEn = stats.vidasRestauranEn;
+  }
+  updateNavStats();
+  updateLivesDisplay();
+  updateLifeCooldownUI();
+  await startLifeCountdown();
+  return stats;
+}
+
+function collectNewBadges(nextBadges = []) {
+  const currentIds = new Set((state.user?.insignias || []).map(badge => badge.id));
+  return nextBadges.filter(badge => !currentIds.has(badge.id));
+}
+
+function queueBadges(badges = []) {
+  const queuedIds = new Set(state.pendingBadges.map(badge => badge.id));
+  badges.forEach(badge => {
+    if (!queuedIds.has(badge.id)) {
+      state.pendingBadges.push(badge);
+      queuedIds.add(badge.id);
+    }
+  });
+}
+
+function showQueuedBadges() {
+  if (state.pendingBadges.length === 0) return;
+  const badge = state.pendingBadges.shift();
+  showModal('🏅', 'Nueva insignia', `Ganaste: ${badge.nombre}`, false, () => {
+    if (state.currentView === 'home') renderHome();
+    showQueuedBadges();
+  });
+}
 
 // ============================
 //  INIT
@@ -72,7 +202,9 @@ function showApp() {
   $('screen-auth').classList.remove('active');
   $('screen-app').classList.add('active');
   updateNavStats();
+  updateLifeCooldownUI();
   loadView('home');
+  ensureProgressLoaded(true).catch(() => {});
 }
 
 function bindAuthEvents() {
@@ -225,16 +357,15 @@ function updateNavStats() {
   setText('nav-racha', u.racha || 0);
   setText('nav-vidas', u.vidas !== undefined ? u.vidas : 5);
   setText('nav-xp', u.xp || 0);
+  updateLifeCooldownUI();
 }
 
 // Verificar racha y vidas cada 20 minutos
 setInterval(async () => {
   if (!state.user) return;
   try {
-    const u = await API.me();
     const rachaAnterior = state.user.racha || 0;
-    state.user = u;
-    updateNavStats();
+    const { user: u } = await refreshSessionState(false);
     renderHome();
     if (u.perdioRacha && rachaAnterior > 0) {
       showModal('💔', '¡Perdiste tu racha!',
@@ -249,11 +380,33 @@ setInterval(async () => {
 // ============================
 //  LEVEL SELECT
 // ============================
-function openLevelSelect(nivel) {
+async function openLevelSelect(nivel) {
   state.practice.nivel = nivel;
   const meta = LEVELS_META.find(l => l.n === nivel);
   $('modal-level-title').textContent = `Nivel ${nivel}: ${meta.title}`;
+  try {
+    await ensureProgressLoaded();
+    const ejercicios = await API.getExercisesByNivel(nivel);
+    state.practice.catalogoNivel = ejercicios;
+    renderDifficultyButtons(ejercicios);
+  } catch (e) {
+    state.practice.catalogoNivel = null;
+  }
   $('modal-level-select').classList.remove('hidden');
+}
+
+function renderDifficultyButtons(ejercicios) {
+  document.querySelectorAll('.diff-btn').forEach(btn => {
+    const diff = btn.dataset.diff;
+    const lista = diff === 'all' ? ejercicios : ejercicios.filter(e => e.dificultad === diff);
+    const completados = lista.filter(e => state.progress?.estadoEjercicios?.[e.id]?.correcto).length;
+    const pendientes = lista.filter(e => {
+      const item = state.progress?.estadoEjercicios?.[e.id];
+      return item?.incorrectos > 0 && !item?.correcto;
+    }).length;
+    const label = diff === 'all' ? 'Todos' : diff.charAt(0).toUpperCase() + diff.slice(1);
+    btn.innerHTML = `${label}<span class="diff-meta">${completados}/${lista.length} completos${pendientes ? ` · ${pendientes} pendientes` : ''}</span>`;
+  });
 }
 
 function bindPracticeEvents() {
@@ -276,7 +429,16 @@ function bindPracticeEvents() {
 // ============================
 async function startPractice(nivel, dificultad) {
   try {
-    let ejercicios = await API.getExercisesByNivel(nivel);
+    await ensureProgressLoaded();
+    if ((state.user?.vidas ?? 5) === 0) {
+      showLifeCooldownModal(state.user?.vidasRestauranEn);
+      return;
+    }
+
+    let ejercicios = state.practice.catalogoNivel;
+    if (!ejercicios || state.practice.nivel !== nivel) {
+      ejercicios = await API.getExercisesByNivel(nivel);
+    }
     if (dificultad !== 'all') {
       ejercicios = ejercicios.filter(e => e.dificultad === dificultad);
     }
@@ -284,10 +446,21 @@ async function startPractice(nivel, dificultad) {
       showModal('😅', 'Sin ejercicios', 'No hay ejercicios disponibles para esta combinación.', false);
       return;
     }
-    // Shuffle
-    ejercicios = ejercicios.sort(() => Math.random() - 0.5);
+    ejercicios = ejercicios
+      .slice()
+      .sort((a, b) => rankExerciseForPractice(a) - rankExerciseForPractice(b) || a.id.localeCompare(b.id));
 
-    state.practice = { nivel, dificultad, ejercicios, idx: 0, startTime: Date.now(), selectedAnswer: null, dragOrder: [], answered: false };
+    state.practice = {
+      nivel,
+      dificultad,
+      ejercicios,
+      idx: 0,
+      startTime: Date.now(),
+      selectedAnswer: null,
+      dragOrder: [],
+      answered: false,
+      catalogoNivel: state.practice.catalogoNivel || ejercicios
+    };
     loadView('practice');
     updatePracticeHeader();
     renderExercise();
@@ -296,17 +469,25 @@ async function startPractice(nivel, dificultad) {
   }
 }
 
+function rankExerciseForPractice(exercise) {
+  const status = state.progress?.estadoEjercicios?.[exercise.id];
+  if (status?.incorrectos > 0 && !status?.correcto) return 0;
+  if (status?.correcto) return 2;
+  return 1;
+}
+
 function updatePracticeHeader() {
   const { nivel, ejercicios, idx } = state.practice;
-  const meta = LEVELS_META.find(l => l.n === nivel);
+  const completados = ejercicios.filter(e => state.progress?.estadoEjercicios?.[e.id]?.correcto).length;
   $('prac-nivel-label').textContent = `Nivel ${nivel}`;
-  $('prac-ejercicio-num').textContent = `Ejercicio ${idx + 1} de ${ejercicios.length}`;
+  $('prac-ejercicio-num').textContent = `Ejercicio ${idx + 1} de ${ejercicios.length} · ${completados}/${ejercicios.length} completos`;
   updateLivesDisplay();
 }
 
 function updateLivesDisplay() {
   const vidas = state.user?.vidas ?? 5;
   $('lives-display').textContent = '❤️'.repeat(Math.max(0, vidas)) + '🖤'.repeat(Math.max(0, 5 - vidas));
+  updateLifeCooldownUI();
 }
 
 function renderExercise() {
@@ -319,6 +500,9 @@ function renderExercise() {
   state.practice.answered = false;
 
   const difClass = `badge-dif-${ej.dificultad}`;
+  const status = state.progress?.estadoEjercicios?.[ej.id] || null;
+  const alreadyCompleted = Boolean(status?.correcto);
+  const hasHint = Boolean(ej.pista);
   let bodyHTML = '';
 
   if (ej.tipo === 'opcion_multiple' || ej.tipo === 'completar') {
@@ -349,61 +533,105 @@ function renderExercise() {
     `;
   } else if (ej.tipo === 'escribir') {
     bodyHTML = `
-      <button class="pista-btn" onclick="togglePista(this, '${escapePista(ej.pista)}')">💡 Ver pista</button>
-      <div class="pista-box hidden"></div>
       <textarea class="write-area" id="write-input" placeholder="Escribe tu código aquí..." spellcheck="false"></textarea>
     `;
   }
 
   $('exercise-container').innerHTML = `
-    <div class="exercise-card">
-      <div class="exercise-meta">
-        <span class="badge-tipo">${TIPO_LABELS[ej.tipo] || ej.tipo}</span>
-        <span class="badge-dif ${difClass}">${ej.dificultad}</span>
-        <span class="badge-xp">+${ej.xp} XP</span>
+    <div class="practice-layout">
+      <div class="exercise-card">
+        <div class="exercise-meta">
+          <span class="badge-tipo">${TIPO_LABELS[ej.tipo] || ej.tipo}</span>
+          <span class="badge-dif ${difClass}">${ej.dificultad}</span>
+          <span class="badge-xp">${alreadyCompleted ? 'XP ya cobrado' : `+${ej.xp} XP`}</span>
+          ${alreadyCompleted ? '<span class="badge-status badge-status-done">Completado</span>' : ''}
+          ${status?.incorrectos > 0 && !alreadyCompleted ? '<span class="badge-status badge-status-pending">Pendiente</span>' : ''}
+        </div>
+        <div class="exercise-title">${ej.titulo}</div>
+        <div class="exercise-enunciado">${ej.enunciado}</div>
+        ${hasHint ? `<button class="pista-btn" data-show-label="💡 Ver pista" data-hide-label="🙈 Ocultar pista" onclick="togglePista(this)">💡 Ver pista</button><div class="pista-box hidden">💡 ${escapeHTML(ej.pista)}</div>` : ''}
+        ${bodyHTML}
+        ${alreadyCompleted ? '<div class="repeat-note">Ya acertaste este ejercicio antes. Puedes repetirlo para practicar, pero no volverá a sumar XP.</div>' : ''}
+        <div class="exercise-actions">
+          ${ej.tipo === 'opcion_multiple' || ej.tipo === 'completar'
+            ? `<button class="btn-primary" onclick="submitAnswer()" id="btn-submit" disabled>Verificar respuesta</button>`
+            : ej.tipo === 'escribir'
+            ? `<button class="btn-primary" onclick="submitWriteAnswer()">Verificar respuesta</button>`
+            : `<button class="btn-primary" onclick="submitOrderAnswer()">Verificar orden</button>`
+          }
+        </div>
+        <div id="feedback-box" class="hidden" style="margin-top:16px;"></div>
       </div>
-      <div class="exercise-title">${ej.titulo}</div>
-      <div class="exercise-enunciado">${ej.enunciado}</div>
-      ${bodyHTML}
-      ${ej.tipo !== 'ordenar' && ej.tipo !== 'opcion_multiple' && ej.tipo !== 'completar' ? '' : ''}
-      <div class="exercise-actions">
-        ${ej.tipo === 'opcion_multiple' || ej.tipo === 'completar'
-          ? `<button class="btn-primary" onclick="submitAnswer()" id="btn-submit" disabled>Verificar respuesta</button>`
-          : ej.tipo === 'escribir'
-          ? `<button class="btn-primary" onclick="submitWriteAnswer()">Verificar respuesta</button>`
-          : `<button class="btn-primary" onclick="submitOrderAnswer()">Verificar orden</button>`
-        }
-        ${ej.tipo !== 'opcion_multiple' && ej.tipo !== 'completar'
-          ? `<button class="pista-btn" style="margin-bottom:0" onclick="togglePista(this, '${escapePista(ej.pista)}')">💡 Pista</button>`
-          : ''
-        }
-      </div>
-      <div id="feedback-box" class="hidden" style="margin-top:16px;"></div>
+      <aside class="practice-sidebar" id="practice-sidebar">${renderPracticeSidebar()}</aside>
     </div>
   `;
 
   if (ej.tipo === 'ordenar') initDragDrop();
 }
 
-function escapePista(t) {
-  return (t || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-}
-
-function togglePista(btn, pista) {
-  // Find pista-box: sibling or parent search
-  let box = btn.nextElementSibling;
-  if (!box || !box.classList.contains('pista-box')) {
-    box = btn.closest('.exercise-card')?.querySelector('.pista-box');
-  }
+function togglePista(btn) {
+  const box = btn.nextElementSibling?.classList.contains('pista-box')
+    ? btn.nextElementSibling
+    : btn.closest('.exercise-card')?.querySelector('.pista-box');
   if (!box) return;
   if (box.classList.contains('hidden')) {
-    box.textContent = '💡 ' + pista;
     box.classList.remove('hidden');
-    btn.textContent = '🙈 Ocultar pista';
+    btn.textContent = btn.dataset.hideLabel || '🙈 Ocultar pista';
   } else {
     box.classList.add('hidden');
-    btn.textContent = '💡 Ver pista';
+    btn.textContent = btn.dataset.showLabel || '💡 Ver pista';
   }
+}
+
+function renderPracticeSidebar() {
+  const ejercicios = state.practice.ejercicios || [];
+  const actual = ejercicios[state.practice.idx];
+  const completados = ejercicios.filter(e => state.progress?.estadoEjercicios?.[e.id]?.correcto).length;
+  const pendientes = ejercicios.filter(e => {
+    const item = state.progress?.estadoEjercicios?.[e.id];
+    return item?.incorrectos > 0 && !item?.correcto;
+  });
+  const historial = ejercicios
+    .filter(e => state.progress?.estadoEjercicios?.[e.id]?.incorrectos > 0)
+    .map(e => ({ exercise: e, status: state.progress.estadoEjercicios[e.id] }))
+    .sort((a, b) => Number(Boolean(a.status.correcto)) - Number(Boolean(b.status.correcto)));
+
+  return `
+    <div class="sidebar-card">
+      <h3>Progreso del bloque</h3>
+      <div class="sidebar-stats">
+        <div><strong>${completados}/${ejercicios.length}</strong><span>completados</span></div>
+        <div><strong>${pendientes.length}</strong><span>pendientes</span></div>
+      </div>
+      <div class="sidebar-mini-progress">
+        <div class="sidebar-mini-fill" style="width:${ejercicios.length ? Math.round((completados / ejercicios.length) * 100) : 0}%"></div>
+      </div>
+    </div>
+    <div class="sidebar-card">
+      <h3>Historial de fallos</h3>
+      ${historial.length === 0 ? '<p class="sidebar-empty">Todavía no tienes respuestas falladas en este bloque.</p>' : historial.map(({ exercise, status }) => `
+        <div class="history-item ${actual?.id === exercise.id ? 'current' : ''}">
+          <div>
+            <strong>${exercise.titulo}</strong>
+            <span>${exercise.dificultad}</span>
+          </div>
+          <div class="history-state ${status.correcto ? 'done' : 'pending'}">${status.correcto ? 'Corregida' : 'Pendiente'}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function refreshPracticeSidebar() {
+  const sidebar = $('practice-sidebar');
+  if (sidebar) sidebar.innerHTML = renderPracticeSidebar();
+}
+
+function showLifeCooldownModal(restoreAt) {
+  state.user.vidasRestauranEn = restoreAt || state.user?.vidasRestauranEn || null;
+  showModal('💀', '¡Sin vidas!', 'Te quedaste sin vidas.<br/>Se restaurarán en <strong id="modal-life-countdown">--:--</strong>.', false, () => loadView('home'));
+  updateLifeCooldownUI();
+  startLifeCountdown().catch(() => {});
 }
 
 function selectOption(btn) {
@@ -488,7 +716,7 @@ async function handleResult(result, ej, tiempoSegundos) {
     fb.style.fontSize = '0.92rem';
     fb.style.lineHeight = '1.6';
     fb.innerHTML = `<strong>${result.correcto ? 'Correcto' : 'Incorrecto'}</strong> ${result.feedback || ''}
-      ${!result.correcto && result.respuestaCorrecta ? `<br/><br/><strong>Respuesta correcta:</strong> <code style="color:var(--green)">${result.respuestaCorrecta ? result.respuestaCorrecta.replace(/\n/g, "<br/>") : ""}</code>` : ''}
+      ${!result.correcto && result.respuestaCorrecta ? `<br/><br/><strong>Respuesta correcta:</strong> <code style="color:var(--green)">${result.respuestaCorrecta ? String(result.respuestaCorrecta).replace(/\n/g, "<br/>") : ""}</code>` : ''}
       <br/><br/><button onclick="showNextButton()" style="background:var(--green);color:#000;border:none;padding:10px 24px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.95rem;">Continuar →</button>
     `;
   }
@@ -496,23 +724,48 @@ async function handleResult(result, ej, tiempoSegundos) {
   // Save progress
   try {
     const saved = await API.saveProgress(ej.id, result.correcto, result.xpGanado, tiempoSegundos, ej.nivel);
+    // Si bloqueado por vidas
+    if (saved.bloqueado) {
+      state.user.vidas = 0;
+      state.user.vidasRestauranEn = saved.vidasRestauranEn || null;
+      updateNavStats();
+      updateLivesDisplay();
+      showLifeCooldownModal(saved.vidasRestauranEn);
+      return;
+    }
+    state.user.vidasRestauranEn = saved.vidasRestauranEn || null;
     // Update state.user
     if (saved.nuevoXP !== undefined) {
+      const nuevasInsignias = saved.nuevasInsignias || state.user.insignias || [];
+      const insigniasRecienGanadas = collectNewBadges(nuevasInsignias);
       state.user.xp = saved.nuevoXP;
       state.user.nivel = saved.nuevoNivel;
-      state.user.insignias = saved.nuevasInsignias || state.user.insignias;
+      state.user.insignias = nuevasInsignias;
+      queueBadges(insigniasRecienGanadas);
     }
     if (saved.vidas !== undefined) {
       state.user.vidas = saved.vidas;
     }
+    await ensureProgressLoaded(true);
     updateNavStats();
     updateLivesDisplay();
+    updatePracticeHeader();
+    refreshPracticeSidebar();
 
-    // Check game over
-    if (!result.correcto && state.user.vidas === 0) {
+    if (fb) {
+      const extra = result.correcto
+        ? (saved.xpGanadoReal > 0
+          ? `<div class="feedback-note success">Ganaste ${saved.xpGanadoReal} XP por este ejercicio.</div>`
+          : '<div class="feedback-note warn">Este ejercicio ya estaba completado, así que esta vez no sumó XP.</div>')
+        : `<div class="feedback-note danger">Perdiste 1 vida${saved.vidasRestauranEn ? ' y el contador de restauración ya empezó.' : '.'}</div>`;
+      fb.innerHTML += extra;
+    }
+
+    // Check game over - bloquear si vidas=0
+    if (state.user.vidas === 0) {
       setTimeout(() => {
-        showModal('💀', '¡Sin vidas!', 'Te quedaste sin vidas. ¡Descansa y vuelve mañana para recuperarlas!', false, () => loadView('home'));
-      }, 1200);
+        showLifeCooldownModal(state.user.vidasRestauranEn);
+      }, 800);
       return;
     }
   } catch (e) { /* non-critical */ }
@@ -535,11 +788,17 @@ function showNextButton() {
     () => {
       if (isLast) {
         loadView('home');
-        API.me().then(u => { state.user = u; updateNavStats(); renderHome(); }).catch(() => {});
+        refreshSessionState(true)
+          .then(() => {
+            renderHome();
+            if (state.pendingBadges.length > 0) showQueuedBadges();
+          })
+          .catch(() => {});
       } else {
         state.practice.idx++;
         updatePracticeHeader();
         renderExercise();
+        if (state.pendingBadges.length > 0) showQueuedBadges();
       }
     }
   );
@@ -605,7 +864,7 @@ async function renderProgress() {
 
       <h2 class="section-title">Progreso por Nivel</h2>
       <table class="level-stats-table">
-        <thead><tr><th>Nivel</th><th>Ejercicios</th><th>Correctos</th><th>Avance</th><th>%</th></tr></thead>
+        <thead><tr><th>Nivel</th><th>Intentos</th><th>Correctos</th><th>Resueltos únicos</th><th>Avance</th><th>%</th></tr></thead>
         <tbody>
           ${LEVELS_META.map(lm => {
             const ln = stats.porNivel[lm.n] || { intentos: 0, correctos: 0 };
@@ -614,12 +873,26 @@ async function renderProgress() {
               <td>Nivel ${lm.n}: ${lm.title}</td>
               <td>${ln.intentos}</td>
               <td>${ln.correctos}</td>
+              <td>${ln.resueltosUnicos || 0}</td>
               <td><div class="mini-bar-wrap"><div class="mini-bar" style="width:${p}%"></div></div></td>
               <td>${p}%</td>
             </tr>`;
           }).join('')}
         </tbody>
       </table>
+
+      <h2 class="section-title">Preguntas falladas</h2>
+      <div class="history-panel">
+        ${stats.historialFallos.length === 0 ? '<p class="empty-msg">No tienes preguntas falladas registradas.</p>' : stats.historialFallos.map(item => `
+          <div class="history-panel-item">
+            <div>
+              <strong>${item.titulo}</strong>
+              <span>Nivel ${item.nivelEjercicio} · ${item.dificultad}</span>
+            </div>
+            <div class="history-state ${item.correcto ? 'done' : 'pending'}">${item.correcto ? 'Corregida' : 'Pendiente'}</div>
+          </div>
+        `).join('')}
+      </div>
 
       ${stats.insignias.length > 0 ? `
         <h2 class="section-title">Insignias obtenidas</h2>
@@ -679,7 +952,7 @@ function showModal(icon, title, body, showNext = true, callback = null) {
   _modalCallback = callback;
   $('modal-icon').textContent = icon;
   $('modal-title').textContent = title;
-  $('modal-body').textContent = body;
+  $('modal-body').innerHTML = body;
   $('modal-btn-next').textContent = showNext ? 'Continuar →' : 'Cerrar';
   $('modal-overlay').classList.remove('hidden');
 }

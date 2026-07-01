@@ -398,7 +398,21 @@ body {
 
 .lives-display { font-size: 1.3rem; letter-spacing: 2px; }
 
-.exercise-container { max-width: 700px; }
+.life-cooldown {
+  margin: -12px 0 16px;
+  color: var(--yellow);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.exercise-container { max-width: 1100px; }
+
+.practice-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 700px) 320px;
+  gap: 20px;
+  align-items: start;
+}
 
 .exercise-card {
   background: var(--navy-card);
@@ -433,6 +447,9 @@ body {
 .badge-dif-medio { background: rgba(255,209,102,0.1); border: 1px solid var(--yellow); color: var(--yellow); }
 .badge-dif-avanzado { background: rgba(255,79,109,0.1); border: 1px solid var(--red); color: var(--red); }
 .badge-xp { background: rgba(255,209,102,0.15); border: 1px solid var(--yellow); color: var(--yellow); font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+.badge-status { font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+.badge-status-done { background: rgba(79,255,176,0.14); border: 1px solid var(--green); color: var(--green); }
+.badge-status-pending { background: rgba(255,79,109,0.14); border: 1px solid var(--red); color: var(--red); }
 
 .exercise-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 14px; }
 
@@ -517,6 +534,16 @@ body {
 }
 .write-area:focus { border-color: var(--green); }
 
+.repeat-note {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,209,102,0.08);
+  border: 1px solid rgba(255,209,102,0.4);
+  color: var(--yellow);
+  font-size: 0.88rem;
+}
+
 .pista-btn {
   background: none;
   border: 1px solid var(--yellow);
@@ -542,6 +569,118 @@ body {
 }
 
 .exercise-actions { display: flex; gap: 12px; }
+
+.practice-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-card,
+.history-panel {
+  background: var(--navy-card);
+  border: 1px solid var(--navy-border);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+
+.sidebar-card h3,
+.history-panel-item strong {
+  font-size: 0.98rem;
+}
+
+.sidebar-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0 14px;
+}
+
+.sidebar-stats div {
+  background: rgba(7,14,29,0.35);
+  border: 1px solid var(--navy-border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.sidebar-stats strong {
+  display: block;
+  color: var(--green);
+  font-size: 1.2rem;
+  font-family: var(--font-mono);
+}
+
+.sidebar-stats span,
+.sidebar-empty,
+.history-panel-item span,
+.history-item span {
+  color: var(--white-dim);
+  font-size: 0.82rem;
+}
+
+.sidebar-mini-progress {
+  height: 9px;
+  border-radius: 999px;
+  background: var(--navy-border);
+  overflow: hidden;
+}
+
+.sidebar-mini-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green-dim), var(--green));
+}
+
+.history-item,
+.history-panel-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--navy-border);
+}
+
+.history-item:last-child,
+.history-panel-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.history-item.current {
+  border-left: 3px solid var(--yellow);
+  padding-left: 10px;
+}
+
+.history-state {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 5px 10px;
+}
+
+.history-state.done {
+  color: var(--green);
+  background: rgba(79,255,176,0.14);
+  border: 1px solid rgba(79,255,176,0.5);
+}
+
+.history-state.pending {
+  color: var(--red);
+  background: rgba(255,79,109,0.14);
+  border: 1px solid rgba(255,79,109,0.5);
+}
+
+.feedback-note {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(240,244,255,0.12);
+  font-size: 0.88rem;
+}
+
+.feedback-note.success { color: var(--green); }
+.feedback-note.warn { color: var(--yellow); }
+.feedback-note.danger { color: #ff8fa0; }
 
 /* ============================
    PROGRESS VIEW
@@ -641,6 +780,13 @@ body {
   text-align: left;
 }
 .diff-btn:hover { border-color: var(--green); color: var(--green); background: var(--green-glow); }
+.diff-meta {
+  display: block;
+  margin-top: 6px;
+  color: var(--white-dim);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
 .modal-close {
   position: absolute;
   top: 14px; right: 16px;
@@ -671,6 +817,7 @@ body {
   .levels-grid { grid-template-columns: repeat(2, 1fr); }
   .main-content { padding: 24px 16px; }
   .exercise-card { padding: 20px; }
+  .practice-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 480px) {

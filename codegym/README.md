@@ -125,7 +125,11 @@ GET  /api/leaderboard        — Top 20 estudiantes
 ```bash
 PORT=3000           # Puerto del servidor (default: 3000)
 JWT_SECRET=mi_clave # Clave secreta JWT (default: codegym_secret_2024)
+DATA_DIR=/var/data/codegym # Ruta persistente para users.json/progress.json en despliegue
+LIFE_COOLDOWN_MINUTES=20    # Minutos para restaurar vidas cuando llegan a 0
 ```
+
+En Render, monta un Persistent Disk y apunta DATA_DIR a esa ruta. Si dejas los JSON en el filesystem efímero del contenedor, las cuentas y el progreso pueden desaparecer tras reinicios o nuevos despliegues.
 
 ---
 

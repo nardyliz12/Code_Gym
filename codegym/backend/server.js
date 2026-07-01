@@ -17,8 +17,10 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Init DB files if not exist
-const dbDir = path.join(__dirname, 'db');
-if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir);
+const dbDir = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.join(__dirname, 'db');
+if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
 const dbFiles = {
   users: [],
