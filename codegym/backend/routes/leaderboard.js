@@ -1,6 +1,7 @@
 const express = require('express');
 const { readDB } = require('../middleware/db');
 const { authMiddleware } = require('../middleware/auth');
+const { syncTimeBasedStreak } = require('../utils/streak');
 
 const router = express.Router();
 
@@ -8,6 +9,7 @@ const router = express.Router();
 router.get('/', authMiddleware, (req, res) => {
   const users = readDB('users');
   const tabla = users
+    .map(u => syncTimeBasedStreak(u))
     .map(u => ({
       id: u.id,
       nombre: u.nombre,

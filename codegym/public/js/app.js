@@ -137,6 +137,11 @@ async function ensureProgressLoaded(force = false) {
   const stats = await API.getProgress();
   state.progress = stats;
   if (state.user) {
+    state.user.xp = stats.xpTotal;
+    state.user.nivel = stats.nivel;
+    state.user.racha = stats.racha;
+    state.user.rachaMax = stats.rachaMax;
+    state.user.insignias = stats.insignias;
     state.user.vidas = stats.vidas;
     state.user.vidasRestauranEn = stats.vidasRestauranEn;
   }

@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { findOne, findAll, insert, update, readDB } = require('../middleware/db');
 const { authMiddleware, SECRET } = require('../middleware/auth');
 const { syncUserAchievements } = require('../utils/achievements');
+const { syncTimeBasedStreak } = require('../utils/streak');
 
 const router = express.Router();
 
@@ -39,6 +40,7 @@ router.post('/register', async (req, res) => {
       nivel: 1,
       racha: 0,
       rachaMax: 0,
+      rachaActualizadaEn: null,
       vidas: 5,
       vidasRestauranEn: null,
       insignias: [],
@@ -65,19 +67,14 @@ router.post('/login', async (req, res) => {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Contraseña incorrecta' });
 
-    // Actualizar racha
-    const hoy = new Date().toDateString();
-    const ayer = new Date(Date.now() - 86400000).toDateString();
-    let nuevaRacha = user.racha;
-
-    if (user.ultimaSesion === hoy) {
-      // Ya jugó hoy, mantener racha
-    } else if (user.ultimaSesion === ayer) {
-      nuevaRacha = user.racha + 1;
-    } else if (user.ultimaSesion !== hoy) {
-      nuevaRacha = 1;
-    }
-
+    const ahora = new Date();
+    const hoy = ahora.toDateString();
+    const streakUser = syncTimeBasedStreak({
+      ...user,
+      ultimaSesion: hoy,
+      rachaActualizadaEn: user.rachaActualizadaEn || ahora.toISOString()
+    }, ahora.getTime());
+    const nuevaRacha = streakUser.racha || 0;
     const rachaMax = Math.max(user.rachaMax || 0, nuevaRacha);
     const restoreAt = user.vidasRestauranEn ? new Date(user.vidasRestauranEn).getTime() : null;
     const cooldownVencido = user.vidas === 0 && restoreAt && restoreAt <= Date.now();
@@ -85,7 +82,7 @@ router.post('/login', async (req, res) => {
     const vidasRestauranEn = cooldownVencido ? null : user.vidasRestauranEn || null;
 
     const syncedUser = syncUserAchievements({
-      ...user,
+      ...streakUser,
       racha: nuevaRacha,
       rachaMax,
       ultimaSesion: hoy,
@@ -96,6 +93,7 @@ router.post('/login', async (req, res) => {
     update('users', u => u.id === user.id, {
       racha: nuevaRacha,
       rachaMax,
+      rachaActualizadaEn: streakUser.rachaActualizadaEn,
       ultimaSesion: hoy,
       vidas,
       vidasRestauranEn,
@@ -117,6 +115,16 @@ router.get('/me', authMiddleware, (req, res) => {
   const user = findOne('users', u => u.id === req.user.id);
   if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
   let currentUser = user;
+  const streakUser = syncTimeBasedStreak(currentUser);
+  if (streakUser.racha !== currentUser.racha || streakUser.rachaActualizadaEn !== currentUser.rachaActualizadaEn) {
+    currentUser = update('users', u => u.id === user.id, {
+      racha: streakUser.racha,
+      rachaActualizadaEn: streakUser.rachaActualizadaEn,
+      rachaMax: Math.max(user.rachaMax || 0, streakUser.racha)
+    }) || streakUser;
+  } else {
+    currentUser = streakUser;
+  }
   const restoreAt = user.vidasRestauranEn ? new Date(user.vidasRestauranEn).getTime() : null;
   if (user.vidas === 0 && restoreAt && restoreAt <= Date.now()) {
     currentUser = update('users', u => u.id === user.id, {

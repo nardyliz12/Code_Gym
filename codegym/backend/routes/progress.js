@@ -2,6 +2,7 @@ const express = require('express');
 const { findOne, findAll, insert, update, readDB } = require('../middleware/db');
 const { authMiddleware } = require('../middleware/auth');
 const { calcularNivel, calcularInsignias, syncUserAchievements } = require('../utils/achievements');
+const { syncTimeBasedStreak } = require('../utils/streak');
 
 const router = express.Router();
 const LIFE_COOLDOWN_MINUTES = Number(process.env.LIFE_COOLDOWN_MINUTES || 20);
@@ -261,10 +262,19 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const { ejercicioId, correcto, xpGanado, tiempoSegundos, nivelEjercicio } = req.body;
-    let user = ensureLifeState(findOne('users', u => u.id === userId));
+    const currentUser = ensureLifeState(findOne('users', u => u.id === userId));
+    const user = syncTimeBasedStreak(currentUser);
 
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    if (currentUser && (user.racha !== currentUser.racha || user.rachaActualizadaEn !== currentUser.rachaActualizadaEn)) {
+      update('users', u => u.id === userId, {
+        racha: user.racha,
+        rachaActualizadaEn: user.rachaActualizadaEn,
+        rachaMax: Math.max(currentUser.rachaMax || 0, user.racha)
+      });
     }
 
     if (user.vidas === 0) {
@@ -310,6 +320,9 @@ router.post('/', authMiddleware, async (req, res) => {
         xp: nuevoXP,
         nivel: nuevoNivel,
         insignias: nuevasInsignias,
+        racha: user.racha,
+        rachaMax: Math.max(user.rachaMax || 0, user.racha || 0),
+        rachaActualizadaEn: user.rachaActualizadaEn,
         vidas: subiNivel ? 5 : Math.min(5, user.vidas),
         vidasRestauranEn: subiNivel ? null : user.vidasRestauranEn || null
       });
@@ -323,22 +336,41 @@ router.post('/', authMiddleware, async (req, res) => {
         xpGanadoReal: xpReal,
         ejercicioYaCompletado: Boolean(yaCompletado),
         vidas: subiNivel ? 5 : user.vidas,
-        vidasRestauranEn: subiNivel ? null : user.vidasRestauranEn || null
+        vidasRestauranEn: subiNivel ? null : user.vidasRestauranEn || null,
+        racha: user.racha,
+        rachaMax: Math.max(user.rachaMax || 0, user.racha || 0),
+        rachaActualizadaEn: user.rachaActualizadaEn
       });
     } else if (user && !correcto) {
       // Perder vida
       const nuevasVidas = Math.max(0, user.vidas - 1);
       const vidasRestauranEn = nuevasVidas === 0 ? getLivesRestoreAt() : null;
-      update('users', u => u.id === userId, { vidas: nuevasVidas, vidasRestauranEn });
+      update('users', u => u.id === userId, {
+        vidas: nuevasVidas,
+        vidasRestauranEn,
+        racha: user.racha,
+        rachaMax: Math.max(user.rachaMax || 0, user.racha || 0),
+        rachaActualizadaEn: user.rachaActualizadaEn
+      });
       res.json({
         registro,
         vidas: nuevasVidas,
         vidasRestauranEn,
         xpGanadoReal: 0,
-        ejercicioYaCompletado: Boolean(yaCompletado)
+        ejercicioYaCompletado: Boolean(yaCompletado),
+        racha: user.racha,
+        rachaMax: Math.max(user.rachaMax || 0, user.racha || 0),
+        rachaActualizadaEn: user.rachaActualizadaEn
       });
     } else {
-      res.json({ registro, xpGanadoReal: 0, ejercicioYaCompletado: Boolean(yaCompletado) });
+      res.json({
+        registro,
+        xpGanadoReal: 0,
+        ejercicioYaCompletado: Boolean(yaCompletado),
+        racha: user.racha,
+        rachaMax: Math.max(user.rachaMax || 0, user.racha || 0),
+        rachaActualizadaEn: user.rachaActualizadaEn
+      });
     }
   } catch (err) {
     res.status(500).json({ error: err.message });
